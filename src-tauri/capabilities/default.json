@@ -3,7 +3,11 @@
   "identifier": "default",
   "description": "Basic capability for the ChatGPT window",
   "windows": ["main"],
+  "remote": {
+    "urls": ["https://chatgpt.com/*"]
+  },
   "permissions": [
-    "core:default"
+    "core:default",
+    "opener:default"
   ]
 }

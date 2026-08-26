@@ -1,0 +1,14 @@
+{
+  "name": "gpt-wrap",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "taruri:dev": "tauri dev",
+    "taruri:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

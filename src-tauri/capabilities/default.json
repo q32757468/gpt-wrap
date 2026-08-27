@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Basic capability for the ChatGPT window",
+  "description": "Basic capability for the GPTWrap window",
   "windows": ["main"],
   "remote": {
     "urls": ["https://chatgpt.com/*"]

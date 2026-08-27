@@ -1,7 +1,7 @@
 [package]
 name = "gpt-wrap"
 version = "0.1.0"
-description = "A Tauri wrapper for ChatGPT"
+description = "A Tauri desktop wrapper for ChatGPT named GPTWrap"
 authors = ["you"]
 edition = "2021"
 

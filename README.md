@@ -1,4 +1,4 @@
-# GPT Wrap
+# GPTWrap
 
 A minimal Tauri desktop wrapper that loads [ChatGPT](https://chatgpt.com) in its main window.
 

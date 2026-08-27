@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ChatGPT",
+  "productName": "GPTWrap",
   "version": "0.1.0",
   "identifier": "com.gptwrap.desktop",
   "build": {
@@ -10,7 +10,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "ChatGPT",
+        "title": "GPTWrap",
         "url": "https://chatgpt.com",
         "width": 1280,
         "height": 900,

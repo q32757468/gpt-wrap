@@ -8,6 +8,10 @@ const MAIN_WINDOW_LABEL: &str = "main";
 
 fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        if let Err(error) = window.unminimize() {
+            eprintln!("failed to restore the main window: {error}");
+        }
+
         if let Err(error) = window.show() {
             eprintln!("failed to show the main window: {error}");
         }

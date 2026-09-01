@@ -3,13 +3,95 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    webview::{NewWindowResponse, WebviewWindowBuilder},
+    webview::{DownloadEvent, NewWindowResponse, Webview, WebviewWindowBuilder},
     Manager, WebviewUrl, WindowEvent,
 };
+use tauri_plugin_notification::NotificationExt;
 
 const MAIN_WINDOW_LABEL: &str = "main";
 const MAIN_WINDOW_URL: &str = "https://chatgpt.com";
 static NEXT_POPUP_ID: AtomicU64 = AtomicU64::new(1);
+
+fn handle_download<R: tauri::Runtime>(webview: Webview<R>, event: DownloadEvent<'_>) -> bool {
+    match event {
+        DownloadEvent::Requested {
+            url: _,
+            destination,
+        } => {
+            let suggested_file_name = destination
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("download")
+                .to_owned();
+
+            let window = webview.window();
+            let mut dialog = rfd::FileDialog::new()
+                .set_parent(&window)
+                .set_title("选择保存位置")
+                .set_file_name(suggested_file_name);
+
+            if let Some(directory) = destination.parent() {
+                dialog = dialog.set_directory(directory);
+            }
+
+            let Some(selected_path) = dialog.save_file() else {
+                println!("download cancelled");
+                return false;
+            };
+
+            *destination = selected_path;
+            println!("downloading to {}", destination.display());
+        }
+        DownloadEvent::Finished {
+            url: _,
+            path,
+            success,
+        } => {
+            println!(
+                "downloaded to {} (success: {success})",
+                path.as_deref()
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|| "<unknown>".to_string())
+            );
+
+            let (title, body) = if success {
+                let body = path
+                    .as_deref()
+                    .map(|path| {
+                        let file_name = path
+                            .file_name()
+                            .and_then(|name| name.to_str())
+                            .unwrap_or("文件");
+                        let directory = path
+                            .parent()
+                            .map(|directory| directory.display().to_string())
+                            .unwrap_or_else(|| "所选位置".to_string());
+
+                        format!("{file_name}\n已保存到 {directory}")
+                    })
+                    .unwrap_or_else(|| "文件已保存到所选位置".to_string());
+
+                ("下载完成", body)
+            } else {
+                ("下载失败", "文件未能保存，请重试".to_string())
+            };
+
+            if let Err(error) = webview
+                .notification()
+                .builder()
+                .title(title)
+                .body(body)
+                .show()
+            {
+                eprintln!("failed to show download notification: {error}");
+            }
+        }
+        _ => {}
+    }
+
+    // Returning true accepts the request after the user selects a destination.
+    true
+}
 
 fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
@@ -39,6 +121,7 @@ pub fn run() {
     }
 
     builder
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -50,6 +133,7 @@ pub fn run() {
             .title("GPTWrap")
             .inner_size(1280.0, 900.0)
             .min_inner_size(800.0, 600.0)
+            .on_download(handle_download)
             .on_new_window(move |url, features| {
                 let label = format!("popup-{}", NEXT_POPUP_ID.fetch_add(1, Ordering::Relaxed));
                 let popup = WebviewWindowBuilder::new(
@@ -61,6 +145,7 @@ pub fn run() {
                 .center()
                 .inner_size(500.0, 700.0)
                 .title(url.as_str())
+                .on_download(handle_download)
                 .on_document_title_changed(|window, title| {
                     if let Err(error) = window.set_title(&title) {
                         eprintln!("failed to set popup title: {error}");

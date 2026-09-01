@@ -7,17 +7,7 @@
     "frontendDist": "../src"
   },
   "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "GPTWrap",
-        "url": "https://chatgpt.com",
-        "width": 1280,
-        "height": 900,
-        "minWidth": 800,
-        "minHeight": 600
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }

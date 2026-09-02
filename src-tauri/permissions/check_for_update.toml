@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-check-for-update"
+description = "Allows the about window to check for a signed application update."
+commands.allow = ["check_for_update"]

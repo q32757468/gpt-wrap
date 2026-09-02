@@ -38,6 +38,8 @@ mod tests {
             env!("CARGO_PKG_VERSION")
         )));
         assert!(script.contains("https://github.com/q32757468/gpt-wrap"));
+        assert!(script.contains("__GPTWRAP_APP_VERSION__"));
+        assert!(script.contains("__GPTWRAP_GITHUB_URL__"));
         assert!(!script.contains("__GPTWRAP_ABOUT_LOGO__"));
         assert!(!script.contains(VERSION_PLACEHOLDER));
         assert!(!script.contains(GITHUB_URL_PLACEHOLDER));

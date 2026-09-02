@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-install-update"
+description = "Allows the about window to download and install a signed application update."
+commands.allow = ["install_update"]

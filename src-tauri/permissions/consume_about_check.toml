@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-consume-about-check"
+description = "Allows the about window to consume a pending update-check request."
+commands.allow = ["consume_about_check"]

@@ -1,25 +1,40 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     webview::{DownloadEvent, NewWindowResponse, Webview, WebviewWindowBuilder},
-    Manager, WebviewUrl, WindowEvent,
+    Emitter, Manager, WebviewUrl, WindowEvent,
 };
 use tauri_plugin_notification::NotificationExt;
 
 mod about_window;
 mod injected_titlebar;
+#[cfg(desktop)]
+mod updates;
 
 const MAIN_WINDOW_LABEL: &str = "main";
 const MAIN_WINDOW_URL: &str = "https://chatgpt.com";
 const ABOUT_WINDOW_LABEL: &str = "about";
-const ABOUT_WINDOW_WIDTH: f64 = 360.0;
-const ABOUT_WINDOW_HEIGHT: f64 = 292.0;
+const ABOUT_WINDOW_WIDTH: f64 = 400.0;
+const ABOUT_WINDOW_HEIGHT: f64 = 420.0;
+const ABOUT_CHECK_EVENT: &str = "gptwrap://about-check-update";
 static NEXT_POPUP_ID: AtomicU64 = AtomicU64::new(1);
 
-#[tauri::command]
-async fn open_about_window<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(), String> {
+#[derive(Default)]
+struct PendingAboutCheck(AtomicBool);
+
+#[tauri::command(rename_all = "camelCase")]
+async fn open_about_window<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    pending_check: tauri::State<'_, PendingAboutCheck>,
+    auto_check: Option<bool>,
+) -> Result<(), String> {
+    let should_check = auto_check.unwrap_or(false);
+    if should_check {
+        pending_check.0.store(true, Ordering::Release);
+    }
+
     if let Some(window) = app.get_webview_window(ABOUT_WINDOW_LABEL) {
         window
             .unminimize()
@@ -30,6 +45,11 @@ async fn open_about_window<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Resul
         window
             .set_focus()
             .map_err(|error| format!("failed to focus the about window: {error}"))?;
+        if should_check {
+            window
+                .emit(ABOUT_CHECK_EVENT, ())
+                .map_err(|error| format!("failed to trigger update check: {error}"))?;
+        }
         return Ok(());
     }
 
@@ -39,8 +59,7 @@ async fn open_about_window<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Resul
         WebviewUrl::App("about.html".into()),
     )
     .title("关于 GPTWrap")
-    // Keep the native window's content area the same size as the former
-    // in-page about dialog.
+    // Keep the native window large enough for update status and progress.
     .inner_size(ABOUT_WINDOW_WIDTH, ABOUT_WINDOW_HEIGHT)
     .min_inner_size(ABOUT_WINDOW_WIDTH, ABOUT_WINDOW_HEIGHT)
     .max_inner_size(ABOUT_WINDOW_WIDTH, ABOUT_WINDOW_HEIGHT)
@@ -58,6 +77,11 @@ async fn open_about_window<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Resul
         .build()
         .map(|_| ())
         .map_err(|error| format!("failed to create the about window: {error}"))
+}
+
+#[tauri::command]
+fn consume_about_check(pending_check: tauri::State<'_, PendingAboutCheck>) -> bool {
+    pending_check.0.swap(false, Ordering::AcqRel)
 }
 
 fn handle_download<R: tauri::Runtime>(webview: Webview<R>, event: DownloadEvent<'_>) -> bool {
@@ -172,8 +196,23 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![open_about_window])
+        .invoke_handler(tauri::generate_handler![
+            open_about_window,
+            consume_about_check,
+            #[cfg(desktop)]
+            updates::check_for_update,
+            #[cfg(desktop)]
+            updates::install_update,
+        ])
         .setup(|app| {
+            app.manage(PendingAboutCheck::default());
+            #[cfg(desktop)]
+            {
+                app.handle()
+                    .plugin(tauri_plugin_updater::Builder::new().build())?;
+                app.manage(updates::UpdateState::default());
+            }
+
             let app_handle = app.handle().clone();
             WebviewWindowBuilder::new(
                 app,
@@ -235,7 +274,7 @@ pub fn run() {
                     } = event
                     {
                         let app = tray.app_handle();
-                        show_main_window(&app);
+                        show_main_window(app);
                     }
                 })
                 .icon(app.default_window_icon().unwrap().clone())
@@ -244,12 +283,11 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if window.label() == MAIN_WINDOW_LABEL {
-                if let WindowEvent::CloseRequested { api, .. } = event {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == MAIN_WINDOW_LABEL || window.label() == ABOUT_WINDOW_LABEL {
                     api.prevent_close();
-
                     if let Err(error) = window.hide() {
-                        eprintln!("failed to hide the main window: {error}");
+                        eprintln!("failed to hide window {}: {error}", window.label());
                     }
                 }
             }

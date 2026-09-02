@@ -1,10 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "about",
-  "description": "Allows the native GPTWrap about window to close itself and open its project homepage.",
+  "description": "Allows the native GPTWrap about window to hide itself, check for updates, and open its project homepage.",
   "windows": ["about"],
   "permissions": [
-    "core:window:allow-close",
+    "core:window:allow-hide",
+    "core:event:allow-listen",
+    "allow-consume-about-check",
+    "allow-check-for-update",
+    "allow-install-update",
     "opener:default"
   ]
 }

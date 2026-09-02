@@ -40,7 +40,11 @@ mod tests {
         assert!(script.contains("padding-top"));
         assert!(script.contains("applyPageSafeArea"));
         assert!(script.contains("data-action=\"about\""));
+        assert!(script.contains("data-action=\"check-update\""));
         assert!(script.contains("open_about_window"));
+        assert!(script.contains("autoCheck: false"));
+        assert!(script.contains("autoCheck: true"));
+        assert!(script.contains("autoCheck"));
         assert!(!script.contains("--gptwrap-titlebar-content-height"));
         assert!(!script.contains("body main > :first-child"));
         assert!(!script.contains("scrollbar-width: none"));

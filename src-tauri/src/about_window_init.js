@@ -5,6 +5,11 @@
   const APP_VERSION = __GPTWRAP_ABOUT_VERSION__;
   const GITHUB_URL = __GPTWRAP_ABOUT_GITHUB_URL__;
 
+  // Expose the compile-time values to about.js without making that page
+  // depend on a bundler or on duplicated placeholders.
+  window.__GPTWRAP_APP_VERSION__ = APP_VERSION;
+  window.__GPTWRAP_GITHUB_URL__ = GITHUB_URL;
+
   const initializeAboutContent = () => {
     const icon = document.querySelector(".about-icon");
     if (icon) {

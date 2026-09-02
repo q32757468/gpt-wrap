@@ -144,21 +144,29 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate updater signing secret
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            throw 'TAURI_SIGNING_PRIVATE_KEY is required to publish updater artifacts.'
+          }
+
       - name: Build and publish GitHub Release
         id: tauri
         uses: tauri-apps/tauri-action@v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: GPTWrap ${{ github.ref_name }}
           releaseBody: |
             ## GPTWrap ${{ github.ref_name }}
 
-            请在下方 Assets 中下载 Windows 安装包：
-
-            - `.exe`：NSIS 安装包，推荐普通用户使用
-            - `.msi`：Windows Installer 安装包
+            请在下方 Assets 中下载 Windows NSIS 安装包（`.exe`）。应用内更新从此版本开始可用。
 
             > 当前版本未进行 Windows 代码签名，安装时可能出现 SmartScreen 或“未知发布者”提示。
           releaseDraft: false
@@ -166,8 +174,9 @@ jobs:
           generateReleaseNotes: false
           projectPath: .
           tauriScript: pnpm tauri
-          uploadUpdaterJson: false
-          uploadUpdaterSignatures: false
+          uploadUpdaterJson: true
+          uploadUpdaterSignatures: true
+          updaterJsonPreferNsis: true
 
       - name: Verify Windows installers
         shell: pwsh
@@ -177,17 +186,36 @@ jobs:
             throw "Tauri bundle directory was not created: $bundleRoot"
           }
 
-          $installers = @(
-            Get-ChildItem -LiteralPath $bundleRoot -Recurse -File |
-              Where-Object { $_.Extension -in @('.exe', '.msi') }
-          )
-          $exeInstallers = @($installers | Where-Object { $_.Extension -eq '.exe' })
-          $msiInstallers = @($installers | Where-Object { $_.Extension -eq '.msi' })
+          $nsisRoot = Join-Path $bundleRoot 'nsis'
+          $exeInstallers = @(Get-ChildItem -LiteralPath $nsisRoot -Filter '*.exe' -File -ErrorAction SilentlyContinue)
+          $signatures = @(Get-ChildItem -LiteralPath $nsisRoot -Filter '*.exe.sig' -File -ErrorAction SilentlyContinue)
 
-          $installers | ForEach-Object {
+          $exeInstallers | ForEach-Object {
             Write-Host ("Installer: {0} ({1} bytes)" -f $_.FullName, $_.Length)
           }
-
-          if ($exeInstallers.Count -eq 0 -or $msiInstallers.Count -eq 0) {
-            throw 'Expected at least one NSIS .exe installer and one WiX .msi installer.'
+          $signatures | ForEach-Object {
+            Write-Host ("Signature: {0} ({1} bytes)" -f $_.FullName, $_.Length)
           }
+
+          if ($exeInstallers.Count -eq 0 -or $signatures.Count -eq 0) {
+            throw 'Expected an NSIS .exe installer and its .exe.sig updater signature.'
+          }
+
+      - name: Verify updater metadata
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $uri = "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/releases/tags/$tag"
+          $headers = @{
+            Accept = 'application/vnd.github+json'
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $release = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+          $latestJson = @($release.assets | Where-Object { $_.name -eq 'latest.json' })
+          if ($latestJson.Count -ne 1) {
+            throw "Expected exactly one latest.json updater metadata asset for $tag."
+          }
+          Write-Host ("Updater metadata: {0}" -f $latestJson[0].browser_download_url)

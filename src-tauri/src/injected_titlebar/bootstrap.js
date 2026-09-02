@@ -213,7 +213,7 @@
           <button class="menu-button" type="button" aria-haspopup="true" aria-expanded="false" data-menu="help">帮助</button>
           <div class="menu-panel" role="menu" data-menu-panel="help" hidden>
             <button class="menu-item" type="button" role="menuitem" data-action="about">关于</button>
-            <button class="menu-item" type="button" role="menuitem" disabled>检查更新</button>
+            <button class="menu-item" type="button" role="menuitem" data-action="check-update">检查更新</button>
           </div>
         </div>
       </div>
@@ -315,6 +315,7 @@
       .filter((entry) => entry.panel);
     const exitMenuItem = titlebar.querySelector('[data-action="exit"]');
     const aboutMenuItem = titlebar.querySelector('[data-action="about"]');
+    const checkUpdateMenuItem = titlebar.querySelector('[data-action="check-update"]');
     let openMenu = null;
     let pendingDragTimer = null;
     let dragStartPoint = null;
@@ -492,7 +493,15 @@
       stopEvent(event);
       closeMenus();
       runCoreOperation("opening the about window", () =>
-        tauriCore?.invoke("open_about_window"),
+        tauriCore?.invoke("open_about_window", { autoCheck: false }),
+      );
+    });
+
+    checkUpdateMenuItem?.addEventListener("click", (event) => {
+      stopEvent(event);
+      closeMenus();
+      runCoreOperation("opening the about window for an update check", () =>
+        tauriCore?.invoke("open_about_window", { autoCheck: true }),
       );
     });
 

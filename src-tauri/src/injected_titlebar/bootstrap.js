@@ -104,6 +104,10 @@
         .h-svh {
           height: calc(100svh - ${TITLEBAR_HEIGHT}) !important;
         }
+        .h-screen,
+        .h-\\[100vh\\] {
+          height: calc(100vh - ${TITLEBAR_HEIGHT}) !important;
+        }
       `;
       root.appendChild(style);
       saved.style = style;

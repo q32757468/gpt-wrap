@@ -138,6 +138,7 @@ jobs:
       - name: Cache Rust build
         uses: Swatinem/rust-cache@v2.9.2
         with:
+          shared-key: gpt-wrap-windows-release
           workspaces: src-tauri -> target
 
       - name: Install frontend dependencies

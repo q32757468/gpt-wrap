@@ -168,6 +168,7 @@ pub fn run() {
 
             TrayIconBuilder::new()
                 .menu(&menu)
+                .tooltip("GPTWrap")
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show_main_window(app),

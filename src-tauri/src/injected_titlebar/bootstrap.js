@@ -5,6 +5,8 @@
   const BOOTSTRAP_KEY = Symbol.for("com.gptwrap.titlebar.bootstrap.v1");
   const HOST_TAG = "gptwrap-titlebar-host";
   const TITLEBAR_HEIGHT = "32px";
+  const SAFE_AREA_PROPERTY = "padding-top";
+  const SAFE_AREA_STYLE_ATTRIBUTE = "data-gptwrap-titlebar-safe-area";
   const DRAG_START_DELAY_MS = 250;
   const DRAG_DOUBLE_CLICK_WINDOW_MS = 500;
   const DRAG_MOVE_THRESHOLD_PX = 4;
@@ -66,6 +68,90 @@
 
     for (const [property, value] of Object.entries(styles)) {
       host.style.setProperty(property, value, "important");
+    }
+  };
+
+  // Reserve only the titlebar's top strip on the document root. Do not alter
+  // body/main dimensions, overflow, viewport variables, or any page element.
+  const applyPageSafeArea = (state) => {
+    if (state.safeArea) {
+      return true;
+    }
+
+    const root = document.documentElement;
+    if (!root) {
+      return false;
+    }
+
+    const saved = {
+      root,
+      value: root.style.getPropertyValue(SAFE_AREA_PROPERTY),
+      priority: root.style.getPropertyPriority(SAFE_AREA_PROPERTY),
+      style: null,
+    };
+
+    try {
+      const existing = getComputedStyle(root).getPropertyValue(SAFE_AREA_PROPERTY);
+      const base = existing && existing !== "auto" ? existing : "0px";
+      root.style.setProperty(
+        SAFE_AREA_PROPERTY,
+        `calc(${base} + ${TITLEBAR_HEIGHT})`,
+        "important",
+      );
+      const style = document.createElement("style");
+      style.setAttribute(SAFE_AREA_STYLE_ATTRIBUTE, "");
+      style.textContent = `
+        .h-svh {
+          height: calc(100svh - ${TITLEBAR_HEIGHT}) !important;
+        }
+      `;
+      root.appendChild(style);
+      saved.style = style;
+      // Initialization scripts run before the page parser has created the
+      // head/body. Keep the override at the document end after parsing so it
+      // remains the final rule without touching any other page layout.
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          if (style.isConnected && document.documentElement) {
+            document.documentElement.appendChild(style);
+          }
+        },
+        { once: true },
+      );
+      state.safeArea = saved;
+      return true;
+    } catch (error) {
+      if (saved.value) {
+        root.style.setProperty(SAFE_AREA_PROPERTY, saved.value, saved.priority);
+      } else {
+        root.style.removeProperty(SAFE_AREA_PROPERTY);
+      }
+      saved.style?.remove();
+      log("could not apply the document safe area; using overlay mode", error);
+      return false;
+    }
+  };
+
+  const removePageSafeArea = (state) => {
+    const saved = state.safeArea;
+    if (!saved) {
+      return;
+    }
+
+    try {
+      if (saved.root === document.documentElement) {
+        if (saved.value) {
+          saved.root.style.setProperty(SAFE_AREA_PROPERTY, saved.value, saved.priority);
+        } else {
+          saved.root.style.removeProperty(SAFE_AREA_PROPERTY);
+        }
+      }
+      saved.style?.remove();
+    } catch (error) {
+      log("could not restore the document safe area", error);
+    } finally {
+      state.safeArea = null;
     }
   };
 
@@ -184,6 +270,8 @@
     if (!mounted.dragRegion || !mounted.buttons) {
       return;
     }
+
+    applyPageSafeArea(state);
 
     const tauriWindow = (() => {
       try {
@@ -537,6 +625,7 @@
         install(state);
       } catch (error) {
         log("could not restore the titlebar host", error);
+        removePageSafeArea(state);
       } finally {
         observer.disconnect();
       }
@@ -558,6 +647,7 @@
       restored: false,
       apiUnavailableLogged: false,
       processApiUnavailableLogged: false,
+      safeArea: null,
     };
     window[BOOTSTRAP_KEY] = state;
     const safeInstall = () => {

@@ -37,8 +37,10 @@ mod tests {
         assert!(!script.contains("__GPTWRAP_TITLEBAR_CSS__"));
         assert!(!script.contains("__GPTWRAP_TITLEBAR_LOGO__"));
         assert!(script.contains("data:image/png;base64,"));
-        assert!(!script.contains("data-gptwrap-titlebar-safe-area"));
+        assert!(script.contains("padding-top"));
+        assert!(script.contains("applyPageSafeArea"));
         assert!(!script.contains("--gptwrap-titlebar-content-height"));
-        assert!(!script.contains("applyPageInset"));
+        assert!(!script.contains("body main > :first-child"));
+        assert!(!script.contains("scrollbar-width: none"));
     }
 }

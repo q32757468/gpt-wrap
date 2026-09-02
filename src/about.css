@@ -64,6 +64,7 @@ body {
 .about-title {
   flex: 0 0 auto;
   margin: 0;
+  margin-bottom: 8px;
   color: inherit;
   font-size: 20px;
   font-weight: 650;
@@ -84,23 +85,21 @@ body {
   flex-direction: column;
   align-items: center;
   max-width: 100%;
-  padding: 7px 12px;
+  padding: 0;
   color: #2563a6;
-  background: #f5f8fc;
-  border: 1px solid #e1eaf4;
-  border-radius: 8px;
+  background: transparent;
+  border: 0;
   cursor: pointer;
   font-family: inherit;
   font-size: 12px;
   line-height: 1.35;
   text-decoration: none;
-  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition: color 120ms ease;
+  margin-bottom: 10px;
 }
 
 .about-github:hover {
   color: #174f88;
-  background: #edf4fb;
-  border-color: #c9dced;
 }
 
 .about-github:focus-visible {
@@ -110,8 +109,9 @@ body {
 
 .about-github-label {
   margin-bottom: 2px;
-  color: #6c7784;
-  font-size: 11px;
+  color: inherit;
+  font-size: 14px;
+  font-weight: bold;
 }
 
 .about-github-url {
@@ -324,18 +324,18 @@ body {
 
   .about-github {
     color: #8fc5f5;
-    background: #26394b;
-    border-color: #385572;
+    background: transparent;
+    border-color: transparent;
   }
 
   .about-github:hover {
     color: #b6dbff;
-    background: #2c465d;
-    border-color: #4b6f91;
+    background: transparent;
+    border-color: transparent;
   }
 
   .about-github-label {
-    color: #aab6c3;
+    color: inherit;
   }
 
   .about-update-release {
@@ -373,8 +373,8 @@ body {
 
   .about-github {
     color: ButtonText;
-    background: ButtonFace;
-    border-color: ButtonText;
+    background: transparent;
+    border: 0;
   }
 
   .about-github-label,

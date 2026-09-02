@@ -16,7 +16,8 @@ mod updates;
 const MAIN_WINDOW_LABEL: &str = "main";
 const MAIN_WINDOW_URL: &str = "https://chatgpt.com";
 const ABOUT_WINDOW_LABEL: &str = "about";
-const ABOUT_WINDOW_WIDTH: f64 = 400.0;
+const ABOUT_WINDOW_WIDTH: f64 = 320.0;
+const UPDATE_WINDOW_WIDTH: f64 = 400.0;
 const ABOUT_WINDOW_HEIGHT: f64 = 300.0;
 const UPDATE_WINDOW_HEIGHT: f64 = 420.0;
 const ABOUT_MODE_EVENT: &str = "gptwrap://about-mode";
@@ -32,6 +33,11 @@ async fn open_about_window<R: tauri::Runtime>(
     auto_check: Option<bool>,
 ) -> Result<(), String> {
     let should_check = auto_check.unwrap_or(false);
+    let window_width = if should_check {
+        UPDATE_WINDOW_WIDTH
+    } else {
+        ABOUT_WINDOW_WIDTH
+    };
     let window_height = if should_check {
         UPDATE_WINDOW_HEIGHT
     } else {
@@ -41,7 +47,7 @@ async fn open_about_window<R: tauri::Runtime>(
 
     if let Some(window) = app.get_webview_window(ABOUT_WINDOW_LABEL) {
         window
-            .set_size(LogicalSize::new(ABOUT_WINDOW_WIDTH, window_height))
+            .set_size(LogicalSize::new(window_width, window_height))
             .map_err(|error| format!("failed to resize the about window: {error}"))?;
         window
             .unminimize()
@@ -65,7 +71,7 @@ async fn open_about_window<R: tauri::Runtime>(
     )
     .title("关于 GPTWrap")
     // Use an entry-specific default size while allowing the user to resize it.
-    .inner_size(ABOUT_WINDOW_WIDTH, window_height)
+    .inner_size(window_width, window_height)
     .resizable(true)
     .center()
     .initialization_script(about_window::script());

@@ -1,0 +1,201 @@
+:root {
+  color-scheme: light dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  color: #303030;
+  background: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow: hidden;
+}
+
+.about-window {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 30px 28px 24px;
+  color: inherit;
+  background: #ffffff;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  text-align: center;
+  overflow: hidden;
+}
+
+.about-icon {
+  display: block;
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 14px;
+  padding: 3px;
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  border-radius: 16px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  object-fit: contain;
+}
+
+.about-title {
+  flex: 0 0 auto;
+  margin: 0;
+  color: inherit;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.about-description {
+  flex: 0 0 auto;
+  margin: 7px 0 20px;
+  color: #717171;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.about-github {
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  padding: 9px 14px;
+  color: #2563a6;
+  background: #f5f8fc;
+  border: 1px solid #e1eaf4;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+  text-decoration: none;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.about-github:hover {
+  color: #174f88;
+  background: #edf4fb;
+  border-color: #c9dced;
+}
+
+.about-github:focus-visible {
+  outline: 2px solid #10a37f;
+  outline-offset: 2px;
+}
+
+.about-github-label {
+  margin-bottom: 2px;
+  color: #6c7784;
+  font-size: 11px;
+}
+
+.about-github-url {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-version {
+  flex: 0 0 auto;
+  margin: 16px 0 0;
+  color: #858585;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    color: #ededed;
+    background: #2c2d30;
+  }
+
+  .about-window {
+    background: #2c2d30;
+  }
+
+  .about-icon {
+    background: #ffffff;
+    border-color: #45464a;
+  }
+
+  .about-description,
+  .about-version {
+    color: #a7a7a7;
+  }
+
+  .about-github {
+    color: #8fc5f5;
+    background: #26394b;
+    border-color: #385572;
+  }
+
+  .about-github:hover {
+    color: #b6dbff;
+    background: #2c465d;
+    border-color: #4b6f91;
+  }
+
+  .about-github-label {
+    color: #aab6c3;
+  }
+}
+
+@media (forced-colors: active) {
+  body {
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .about-window {
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .about-github {
+    color: ButtonText;
+    background: ButtonFace;
+    border-color: ButtonText;
+  }
+
+  .about-github-label,
+  .about-description,
+  .about-version {
+    color: CanvasText;
+  }
+
+  .about-github:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-github {
+    transition: none;
+  }
+}

@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-open-about-window"
+description = "Allows opening the native GPTWrap about window."
+commands.allow = ["open_about_window"]

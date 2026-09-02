@@ -39,6 +39,8 @@ mod tests {
         assert!(script.contains("data:image/png;base64,"));
         assert!(script.contains("padding-top"));
         assert!(script.contains("applyPageSafeArea"));
+        assert!(script.contains("data-action=\"about\""));
+        assert!(script.contains("open_about_window"));
         assert!(!script.contains("--gptwrap-titlebar-content-height"));
         assert!(!script.contains("body main > :first-child"));
         assert!(!script.contains("scrollbar-width: none"));

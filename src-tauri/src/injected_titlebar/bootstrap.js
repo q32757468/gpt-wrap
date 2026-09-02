@@ -212,7 +212,7 @@
         <div class="menu">
           <button class="menu-button" type="button" aria-haspopup="true" aria-expanded="false" data-menu="help">帮助</button>
           <div class="menu-panel" role="menu" data-menu-panel="help" hidden>
-            <button class="menu-item" type="button" role="menuitem" disabled>关于</button>
+            <button class="menu-item" type="button" role="menuitem" data-action="about">关于</button>
             <button class="menu-item" type="button" role="menuitem" disabled>检查更新</button>
           </div>
         </div>
@@ -295,6 +295,15 @@
         return null;
       }
     })();
+    const tauriCore = (() => {
+      try {
+        const invoke = window.__TAURI__?.core?.invoke;
+        return typeof invoke === "function" ? { invoke } : null;
+      } catch (error) {
+        log("could not access the Tauri core API", error);
+        return null;
+      }
+    })();
 
     const { titlebar, dragRegion, buttons } = mounted;
     const allButtons = Object.values(buttons);
@@ -305,6 +314,7 @@
       }))
       .filter((entry) => entry.panel);
     const exitMenuItem = titlebar.querySelector('[data-action="exit"]');
+    const aboutMenuItem = titlebar.querySelector('[data-action="about"]');
     let openMenu = null;
     let pendingDragTimer = null;
     let dragStartPoint = null;
@@ -331,6 +341,16 @@
 
     const runProcessOperation = (name, operation) => {
       if (!tauriProcess) {
+        return;
+      }
+
+      Promise.resolve()
+        .then(operation)
+        .catch((error) => logOperationError(name, error));
+    };
+
+    const runCoreOperation = (name, operation) => {
+      if (!tauriCore) {
         return;
       }
 
@@ -466,6 +486,14 @@
       stopEvent(event);
       closeMenus();
       runProcessOperation("exiting application", () => tauriProcess?.exit(0));
+    });
+
+    aboutMenuItem?.addEventListener("click", (event) => {
+      stopEvent(event);
+      closeMenus();
+      runCoreOperation("opening the about window", () =>
+        tauriCore?.invoke("open_about_window"),
+      );
     });
 
     const toggleMaximize = () => {

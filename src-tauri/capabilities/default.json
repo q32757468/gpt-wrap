@@ -13,6 +13,7 @@
     "core:window:allow-start-dragging",
     "core:window:allow-hide",
     "process:allow-exit",
+    "allow-open-about-window",
     "opener:default"
   ]
 }

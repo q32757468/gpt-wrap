@@ -8,11 +8,57 @@ use tauri::{
 };
 use tauri_plugin_notification::NotificationExt;
 
+mod about_window;
 mod injected_titlebar;
 
 const MAIN_WINDOW_LABEL: &str = "main";
 const MAIN_WINDOW_URL: &str = "https://chatgpt.com";
+const ABOUT_WINDOW_LABEL: &str = "about";
+const ABOUT_WINDOW_WIDTH: f64 = 360.0;
+const ABOUT_WINDOW_HEIGHT: f64 = 292.0;
 static NEXT_POPUP_ID: AtomicU64 = AtomicU64::new(1);
+
+#[tauri::command]
+async fn open_about_window<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window(ABOUT_WINDOW_LABEL) {
+        window
+            .unminimize()
+            .map_err(|error| format!("failed to restore the about window: {error}"))?;
+        window
+            .show()
+            .map_err(|error| format!("failed to show the about window: {error}"))?;
+        window
+            .set_focus()
+            .map_err(|error| format!("failed to focus the about window: {error}"))?;
+        return Ok(());
+    }
+
+    let mut builder = WebviewWindowBuilder::new(
+        &app,
+        ABOUT_WINDOW_LABEL,
+        WebviewUrl::App("about.html".into()),
+    )
+    .title("关于 GPTWrap")
+    // Keep the native window's content area the same size as the former
+    // in-page about dialog.
+    .inner_size(ABOUT_WINDOW_WIDTH, ABOUT_WINDOW_HEIGHT)
+    .min_inner_size(ABOUT_WINDOW_WIDTH, ABOUT_WINDOW_HEIGHT)
+    .max_inner_size(ABOUT_WINDOW_WIDTH, ABOUT_WINDOW_HEIGHT)
+    .resizable(false)
+    .center()
+    .initialization_script(about_window::script());
+
+    if let Some(parent) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        builder = builder
+            .parent(&parent)
+            .map_err(|error| format!("failed to parent the about window: {error}"))?;
+    }
+
+    builder
+        .build()
+        .map(|_| ())
+        .map_err(|error| format!("failed to create the about window: {error}"))
+}
 
 fn handle_download<R: tauri::Runtime>(webview: Webview<R>, event: DownloadEvent<'_>) -> bool {
     match event {
@@ -126,6 +172,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
+        .invoke_handler(tauri::generate_handler![open_about_window])
         .setup(|app| {
             let app_handle = app.handle().clone();
             WebviewWindowBuilder::new(

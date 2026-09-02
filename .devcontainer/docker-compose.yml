@@ -1,0 +1,13 @@
+services:
+  app:
+    image: sl-universal-image:latest
+    command: sleep infinity
+    volumes:
+      - node_modules:/workspaces/gpt-wrap/node_modules
+
+volumes:
+  sl-config:
+    name: sl-config
+  sl-cache:
+    name: sl-cache
+  node_modules:

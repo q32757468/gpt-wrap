@@ -1,0 +1,317 @@
+:host,
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.titlebar {
+  all: initial;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 32px;
+  overflow: visible;
+  color: #3d3d3d;
+  background: #FCFCFC;
+  border: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1;
+  user-select: none;
+  pointer-events: auto;
+}
+
+.brand {
+  display: flex;
+  flex: 0 0 108px;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 6px 0 12px;
+  pointer-events: auto;
+}
+
+.brand-icon {
+  display: block;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  padding: 1px;
+  background: #ffffff;
+  border-radius: 5px;
+  object-fit: contain;
+}
+
+.brand-name {
+  overflow: hidden;
+  color: inherit;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-bar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.menu {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+}
+
+.menu-button {
+  all: initial;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 26px;
+  margin: 3px 1px;
+  padding: 0 10px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: default;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  transition: background-color 120ms ease, color 120ms ease;
+  pointer-events: auto;
+}
+
+.menu-button:hover,
+.menu-button[aria-expanded="true"] {
+  color: #202020;
+  background: #eeeeee;
+}
+
+.menu-button:active {
+  background: #e5e5e5;
+}
+
+.menu-button:focus-visible,
+.menu-item:focus-visible {
+  outline: 2px solid #10a37f;
+  outline-offset: -2px;
+}
+
+.menu-panel {
+  position: absolute;
+  top: 32px;
+  left: 1px;
+  z-index: 2;
+  min-width: 148px;
+  padding: 4px;
+  color: #333333;
+  background: #ffffff;
+  border: 1px solid #e4e4e4;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+  animation: menu-in 120ms ease-out;
+}
+
+.menu-panel[hidden] {
+  display: none !important;
+}
+
+.menu-item {
+  all: initial;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  cursor: default;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  text-align: left;
+  transition: background-color 120ms ease, color 120ms ease;
+  pointer-events: auto;
+}
+
+.menu-item:hover:not(:disabled) {
+  color: #202020;
+  background: #f0f0f0;
+}
+
+.menu-item:active:not(:disabled) {
+  background: #e6e6e6;
+}
+
+.menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.drag-region {
+  flex: 1 1 auto;
+  min-width: 0;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.window-buttons {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.window-button {
+  all: initial;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 32px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: default;
+  font-family: inherit;
+  transition: background-color 120ms ease, color 120ms ease;
+  pointer-events: auto;
+}
+
+.window-button:hover:not(:disabled) {
+  background: #eeeeee;
+}
+
+.window-button:active:not(:disabled) {
+  background: #e4e4e4;
+}
+
+.window-button:focus-visible {
+  outline: 2px solid #10a37f;
+  outline-offset: -4px;
+}
+
+.window-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.close-button:hover:not(:disabled) {
+  color: #ffffff;
+  background: #c9342b;
+}
+
+.icon,
+.icon svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.25;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .titlebar {
+    color: #ececec;
+    background: #202123;
+  }
+
+  .menu-button:hover,
+  .menu-button[aria-expanded="true"],
+  .window-button:hover:not(:disabled) {
+    color: #ffffff;
+    background: #343538;
+  }
+
+  .menu-button:active,
+  .window-button:active:not(:disabled) {
+    background: #3d3f42;
+  }
+
+  .menu-panel {
+    color: #ededed;
+    background: #2c2d30;
+    border-color: #45464a;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  .menu-item:hover:not(:disabled) {
+    color: #ffffff;
+    background: #3a3b3e;
+  }
+
+  .menu-item:active:not(:disabled) {
+    background: #44464a;
+  }
+}
+
+@media (forced-colors: active) {
+  .titlebar {
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .brand-icon,
+  .menu-button:hover,
+  .menu-button[aria-expanded="true"],
+  .menu-button:active,
+  .window-button:hover:not(:disabled),
+  .window-button:active:not(:disabled),
+  .close-button:hover:not(:disabled),
+  .menu-item:hover:not(:disabled),
+  .menu-item:active:not(:disabled) {
+    color: ButtonText;
+    background: ButtonFace;
+  }
+
+  .menu-panel {
+    color: CanvasText;
+    background: Canvas;
+    border-color: ButtonText;
+  }
+
+  .menu-button:focus-visible,
+  .menu-item:focus-visible,
+  .window-button:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-button,
+  .menu-item,
+  .window-button,
+  .menu-panel {
+    animation: none;
+    transition: none;
+  }
+}

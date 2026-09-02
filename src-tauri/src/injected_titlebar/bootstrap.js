@@ -1,0 +1,588 @@
+(() => {
+  "use strict";
+
+  const ALLOWED_ORIGINS = new Set(["https://chatgpt.com"]);
+  const BOOTSTRAP_KEY = Symbol.for("com.gptwrap.titlebar.bootstrap.v1");
+  const HOST_TAG = "gptwrap-titlebar-host";
+  const TITLEBAR_HEIGHT = "32px";
+  const DRAG_START_DELAY_MS = 250;
+  const DRAG_DOUBLE_CLICK_WINDOW_MS = 500;
+  const DRAG_MOVE_THRESHOLD_PX = 4;
+  const LOGO_DATA_URL = __GPTWRAP_TITLEBAR_LOGO__;
+  const CSS_TEXT = __GPTWRAP_TITLEBAR_CSS__;
+
+  const log = (message, error) => {
+    try {
+      console.error("[GPTWrap:titlebar]", message, error);
+    } catch (_) {
+      // Diagnostics must never prevent the page from loading.
+    }
+  };
+
+  const logOperationError = (operation, error) => {
+    log(`${operation} failed`, error);
+  };
+
+  const stopEvent = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const stopPropagation = (event) => {
+    event.stopPropagation();
+  };
+
+  const getExistingHost = () => {
+    const root = document.documentElement;
+    if (!root) {
+      return null;
+    }
+
+    for (const child of root.children) {
+      if (child.localName === HOST_TAG) {
+        return child;
+      }
+    }
+
+    return null;
+  };
+
+  const setHostStyles = (host) => {
+    const styles = {
+      position: "fixed",
+      inset: "0 0 auto 0",
+      height: TITLEBAR_HEIGHT,
+      width: "100%",
+      "z-index": "2147483647",
+      display: "block",
+      "pointer-events": "none",
+      isolation: "isolate",
+      contain: "layout style paint",
+      margin: "0",
+      padding: "0",
+      border: "0",
+      background: "transparent",
+    };
+
+    for (const [property, value] of Object.entries(styles)) {
+      host.style.setProperty(property, value, "important");
+    }
+  };
+
+  const icon = (name) => {
+    if (name === "minimize") {
+      return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 10.5h8"></path></svg>`;
+    }
+
+    if (name === "restore") {
+      return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M5 4h6v7H5z"></path><path d="M3 9V2.5h6"></path></svg>`;
+    }
+
+    if (name === "maximize") {
+      return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><rect x="2.75" y="2.75" width="8.5" height="8.5" rx="0.5"></rect></svg>`;
+    }
+
+    return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="m3.25 3.25 7.5 7.5m0-7.5-7.5 7.5"></path></svg>`;
+  };
+
+  const setMaximizeIcon = (button, maximized) => {
+    const iconElement = button.querySelector(".icon");
+    if (iconElement) {
+      iconElement.innerHTML = icon(maximized ? "restore" : "maximize");
+    }
+    button.setAttribute("aria-label", maximized ? "还原窗口" : "最大化窗口");
+  };
+
+  const createTitlebar = () => {
+    const host = document.createElement(HOST_TAG);
+    host.setAttribute("aria-label", "GPTWrap window controls");
+    setHostStyles(host);
+
+    const shadow = host.attachShadow({ mode: "closed" });
+    const style = document.createElement("style");
+    style.textContent = CSS_TEXT;
+    shadow.appendChild(style);
+
+    const titlebar = document.createElement("div");
+    titlebar.className = "titlebar";
+    titlebar.setAttribute("role", "toolbar");
+    titlebar.setAttribute("aria-label", "GPTWrap window controls");
+    titlebar.innerHTML = `
+      <div class="brand" aria-hidden="true">
+        <img class="brand-icon" alt="" />
+        <span class="brand-name">GPTWrap</span>
+      </div>
+      <div class="menu-bar">
+        <div class="menu">
+          <button class="menu-button" type="button" aria-haspopup="true" aria-expanded="false" data-menu="file">文件</button>
+          <div class="menu-panel" role="menu" data-menu-panel="file" hidden>
+            <button class="menu-item" type="button" role="menuitem" data-action="exit">退出</button>
+          </div>
+        </div>
+        <div class="menu">
+          <button class="menu-button" type="button" aria-haspopup="true" aria-expanded="false" data-menu="help">帮助</button>
+          <div class="menu-panel" role="menu" data-menu-panel="help" hidden>
+            <button class="menu-item" type="button" role="menuitem" disabled>关于</button>
+            <button class="menu-item" type="button" role="menuitem" disabled>检查更新</button>
+          </div>
+        </div>
+      </div>
+      <div class="drag-region" aria-hidden="true"></div>
+      <div class="window-buttons">
+        <button class="window-button minimize-button" type="button" aria-label="最小化窗口">
+          <span class="icon">${icon("minimize")}</span>
+        </button>
+        <button class="window-button maximize-button" type="button" aria-label="最大化窗口">
+          <span class="icon">${icon("maximize")}</span>
+        </button>
+        <button class="window-button close-button" type="button" aria-label="隐藏窗口">
+          <span class="icon">${icon("close")}</span>
+        </button>
+      </div>`;
+    shadow.appendChild(titlebar);
+
+    const brandIcon = titlebar.querySelector(".brand-icon");
+    if (brandIcon) {
+      brandIcon.src = LOGO_DATA_URL;
+    }
+
+    return {
+      host,
+      titlebar,
+      dragRegion: titlebar.querySelector(".drag-region"),
+      buttons: {
+        minimize: titlebar.querySelector(".minimize-button"),
+        maximize: titlebar.querySelector(".maximize-button"),
+        close: titlebar.querySelector(".close-button"),
+      },
+    };
+  };
+
+  const mount = () => {
+    if (!document.documentElement) {
+      return null;
+    }
+
+    const existing = getExistingHost();
+    if (existing) {
+      return { host: existing, restored: false };
+    }
+
+    const controls = createTitlebar();
+    document.documentElement.appendChild(controls.host);
+    return { ...controls, restored: false };
+  };
+
+  const install = (state) => {
+    const mounted = mount();
+    if (!mounted) {
+      return;
+    }
+
+    // An existing host may belong to an earlier injected copy. Do not attach
+    // another set of handlers or inspect its shadow tree.
+    if (!mounted.dragRegion || !mounted.buttons) {
+      return;
+    }
+
+    const tauriWindow = (() => {
+      try {
+        const getCurrentWindow = window.__TAURI__?.window?.getCurrentWindow;
+        return typeof getCurrentWindow === "function" ? getCurrentWindow() : null;
+      } catch (error) {
+        log("could not access the Tauri window API", error);
+        return null;
+      }
+    })();
+    const tauriProcess = (() => {
+      try {
+        const exit = window.__TAURI__?.process?.exit;
+        return typeof exit === "function" ? { exit } : null;
+      } catch (error) {
+        log("could not access the Tauri process API", error);
+        return null;
+      }
+    })();
+
+    const { titlebar, dragRegion, buttons } = mounted;
+    const allButtons = Object.values(buttons);
+    const menuEntries = Array.from(titlebar.querySelectorAll(".menu-button"))
+      .map((button) => ({
+        button,
+        panel: titlebar.querySelector(`[data-menu-panel="${button.dataset.menu}"]`),
+      }))
+      .filter((entry) => entry.panel);
+    const exitMenuItem = titlebar.querySelector('[data-action="exit"]');
+    let openMenu = null;
+    let pendingDragTimer = null;
+    let dragStartPoint = null;
+    let dragDoubleClickHandled = false;
+    const disableButtons = () => {
+      for (const button of allButtons) {
+        if (!button) {
+          continue;
+        }
+        button.disabled = true;
+        button.setAttribute("aria-disabled", "true");
+      }
+    };
+
+    const runWindowOperation = (name, operation) => {
+      if (!tauriWindow) {
+        return;
+      }
+
+      Promise.resolve()
+        .then(operation)
+        .catch((error) => logOperationError(name, error));
+    };
+
+    const runProcessOperation = (name, operation) => {
+      if (!tauriProcess) {
+        return;
+      }
+
+      Promise.resolve()
+        .then(operation)
+        .catch((error) => logOperationError(name, error));
+    };
+
+    const updateMaximizeState = () => {
+      if (!tauriWindow || !buttons.maximize) {
+        return;
+      }
+
+      Promise.resolve()
+        .then(() => tauriWindow.isMaximized())
+        .then((maximized) => setMaximizeIcon(buttons.maximize, Boolean(maximized)))
+        .catch((error) => logOperationError("checking maximize state", error));
+    };
+
+    const closeMenus = () => {
+      for (const entry of menuEntries) {
+        entry.panel.hidden = true;
+        entry.button.setAttribute("aria-expanded", "false");
+      }
+      mounted.host.style.setProperty("height", TITLEBAR_HEIGHT, "important");
+      openMenu = null;
+    };
+
+    const openMenuEntry = (entry) => {
+      closeMenus();
+      entry.panel.hidden = false;
+      entry.button.setAttribute("aria-expanded", "true");
+      openMenu = entry;
+
+      const hostTop = mounted.host.getBoundingClientRect().top;
+      const panelBottom = entry.panel.getBoundingClientRect().bottom;
+      const menuHeight = Math.max(
+        Number.parseFloat(TITLEBAR_HEIGHT),
+        Math.ceil(panelBottom - hostTop + 4),
+      );
+      mounted.host.style.setProperty("height", `${menuHeight}px`, "important");
+    };
+
+    const isMenuTarget = (target) =>
+      target instanceof Element && Boolean(target.closest(".menu"));
+
+    // A click inside the titlebar but outside a menu should dismiss an open
+    // panel before the target's own handler (window buttons or drag region)
+    // gets a chance to run. Capture is scoped to this closed shadow tree.
+    titlebar.addEventListener(
+      "click",
+      (event) => {
+        if (!isMenuTarget(event.target)) {
+          closeMenus();
+        }
+      },
+      true,
+    );
+    titlebar.addEventListener(
+      "mousedown",
+      (event) => {
+        if (!isMenuTarget(event.target)) {
+          closeMenus();
+        }
+      },
+      true,
+    );
+
+    // The page may consume a click before it reaches the document listener,
+    // so also close menus on a document-level bubble event. Events originating
+    // in this host are already isolated by the titlebar's local handlers.
+    const closeMenusFromOutside = (event) => {
+      if (!openMenu) {
+        return;
+      }
+
+      const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+      if (path.includes(mounted.host)) {
+        return;
+      }
+      closeMenus();
+    };
+    document.addEventListener("mousedown", closeMenusFromOutside);
+    document.addEventListener("click", closeMenusFromOutside);
+
+    // Keep all events inside the closed shadow tree. The more specific drag
+    // and button handlers below run first, then this local handler prevents
+    // retargeted events from reaching ChatGPT's document listeners.
+    for (const eventName of [
+      "click",
+      "dblclick",
+      "mousedown",
+      "mouseup",
+      "pointerdown",
+      "pointerup",
+      "mousemove",
+      "pointermove",
+      "contextmenu",
+    ]) {
+      titlebar.addEventListener(eventName, (event) => {
+        event.stopPropagation();
+        if (eventName === "contextmenu") {
+          event.preventDefault();
+        }
+      });
+    }
+
+    titlebar.addEventListener("keydown", (event) => {
+      event.stopPropagation();
+      if (event.key === "Escape") {
+        closeMenus();
+      }
+    });
+
+    for (const entry of menuEntries) {
+      entry.button.addEventListener("click", (event) => {
+        stopEvent(event);
+        if (entry.panel.hidden) {
+          openMenuEntry(entry);
+        } else {
+          closeMenus();
+        }
+      });
+
+      entry.button.addEventListener("mouseenter", () => {
+        if (openMenu && openMenu !== entry) {
+          openMenuEntry(entry);
+        }
+      });
+    }
+
+    exitMenuItem?.addEventListener("click", (event) => {
+      stopEvent(event);
+      closeMenus();
+      runProcessOperation("exiting application", () => tauriProcess?.exit(0));
+    });
+
+    const toggleMaximize = () => {
+      runWindowOperation("toggling maximize", async () => {
+        await tauriWindow?.toggleMaximize();
+        updateMaximizeState();
+      });
+    };
+
+    const clearPendingDrag = () => {
+      if (pendingDragTimer !== null) {
+        window.clearTimeout(pendingDragTimer);
+        pendingDragTimer = null;
+      }
+    };
+
+    // Delay starting a drag just long enough to let a second click arrive.
+    // Calling startDragging() during the first mousedown lets the native
+    // window manager consume the second click, which prevents dblclick from
+    // toggling maximize. A held click still starts dragging after the delay.
+    const scheduleDrag = () => {
+      clearPendingDrag();
+      pendingDragTimer = window.setTimeout(() => {
+        pendingDragTimer = null;
+        dragStartPoint = null;
+        runWindowOperation("starting window drag", () => tauriWindow?.startDragging());
+      }, DRAG_START_DELAY_MS);
+    };
+
+    // The drag region is deliberately the only area that starts a drag. The
+    // controls and brand are not draggable and cannot forward clicks to the
+    // page underneath the overlay.
+    dragRegion.addEventListener("mousedown", (event) => {
+      if (event.button !== 0 || event.target !== dragRegion) {
+        return;
+      }
+      stopEvent(event);
+
+      if (event.detail >= 2) {
+        clearPendingDrag();
+        dragStartPoint = null;
+        dragDoubleClickHandled = true;
+        toggleMaximize();
+        window.setTimeout(() => {
+          dragDoubleClickHandled = false;
+        }, DRAG_DOUBLE_CLICK_WINDOW_MS);
+        return;
+      }
+
+      dragStartPoint = { x: event.clientX, y: event.clientY };
+      scheduleDrag();
+    });
+
+    dragRegion.addEventListener("mousemove", (event) => {
+      if (!dragStartPoint || (event.buttons & 1) !== 1) {
+        return;
+      }
+
+      const movedX = event.clientX - dragStartPoint.x;
+      const movedY = event.clientY - dragStartPoint.y;
+      if (Math.hypot(movedX, movedY) < DRAG_MOVE_THRESHOLD_PX) {
+        return;
+      }
+
+      clearPendingDrag();
+      dragStartPoint = null;
+      stopEvent(event);
+      runWindowOperation("starting window drag", () => tauriWindow?.startDragging());
+    });
+
+    dragRegion.addEventListener("mouseup", (event) => {
+      if (event.button === 0) {
+        clearPendingDrag();
+        dragStartPoint = null;
+      }
+    });
+
+    titlebar.addEventListener("dblclick", (event) => {
+      const target = event.target;
+      const isInMenu = target instanceof Element && target.closest(".menu");
+      const isInWindowButtons =
+        target instanceof Element && target.closest(".window-buttons");
+      const isInBrand = target instanceof Element && target.closest(".brand");
+      const isDragRegion = target === dragRegion;
+
+      if (
+        event.button !== 0 ||
+        isInMenu ||
+        isInWindowButtons ||
+        (!isInBrand && !isDragRegion && target !== titlebar)
+      ) {
+        return;
+      }
+
+      if (isDragRegion && dragDoubleClickHandled) {
+        stopEvent(event);
+        dragDoubleClickHandled = false;
+        return;
+      }
+
+      stopEvent(event);
+      toggleMaximize();
+    });
+
+    for (const button of allButtons) {
+      if (!button) {
+        continue;
+      }
+      for (const eventName of ["mousedown", "pointerdown", "dblclick"]) {
+        button.addEventListener(eventName, stopPropagation);
+      }
+    }
+
+    buttons.minimize?.addEventListener("click", (event) => {
+      stopEvent(event);
+      runWindowOperation("minimizing window", () => tauriWindow?.minimize());
+    });
+
+    buttons.maximize?.addEventListener("click", (event) => {
+      stopEvent(event);
+      toggleMaximize();
+    });
+
+    buttons.close?.addEventListener("click", (event) => {
+      stopEvent(event);
+      runWindowOperation("hiding window", () => tauriWindow?.hide());
+    });
+
+    if (!tauriWindow) {
+      disableButtons();
+      if (!state.apiUnavailableLogged) {
+        state.apiUnavailableLogged = true;
+        log("Tauri window API is unavailable; window buttons are disabled");
+      }
+    } else {
+      updateMaximizeState();
+    }
+
+    if (!tauriProcess && exitMenuItem) {
+      exitMenuItem.disabled = true;
+      exitMenuItem.setAttribute("aria-disabled", "true");
+      if (!state.processApiUnavailableLogged) {
+        state.processApiUnavailableLogged = true;
+        log("Tauri process API is unavailable; exit menu item is disabled");
+      }
+    }
+
+    // Restore only once if the page removes the host itself. The observer
+    // watches the document root's direct children, never ChatGPT's subtree.
+    const observer = new MutationObserver(() => {
+      if (state.restored || mounted.host.parentNode === document.documentElement) {
+        return;
+      }
+
+      state.restored = true;
+      document.removeEventListener("mousedown", closeMenusFromOutside);
+      document.removeEventListener("click", closeMenusFromOutside);
+      clearPendingDrag();
+      dragStartPoint = null;
+      try {
+        install(state);
+      } catch (error) {
+        log("could not restore the titlebar host", error);
+      } finally {
+        observer.disconnect();
+      }
+    });
+    if (!state.restored) {
+      observer.observe(document.documentElement, { childList: true });
+    }
+  };
+
+  try {
+    if (window.top !== window || !ALLOWED_ORIGINS.has(window.location.origin)) {
+      return;
+    }
+
+    if (window[BOOTSTRAP_KEY]) {
+      return;
+    }
+    const state = {
+      restored: false,
+      apiUnavailableLogged: false,
+      processApiUnavailableLogged: false,
+    };
+    window[BOOTSTRAP_KEY] = state;
+    const safeInstall = () => {
+      try {
+        install(state);
+      } catch (error) {
+        log("bootstrap failed; leaving the page untouched", error);
+      }
+    };
+
+    const waitForDocumentElement = () => {
+      if (document.documentElement) {
+        safeInstall();
+        return;
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", safeInstall, { once: true });
+      } else {
+        log("documentElement is unavailable; leaving the page untouched");
+      }
+    };
+
+    waitForDocumentElement();
+  } catch (error) {
+    log("bootstrap failed; leaving the page untouched", error);
+  }
+})();

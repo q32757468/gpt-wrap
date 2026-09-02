@@ -8,6 +8,8 @@ use tauri::{
 };
 use tauri_plugin_notification::NotificationExt;
 
+mod injected_titlebar;
+
 const MAIN_WINDOW_LABEL: &str = "main";
 const MAIN_WINDOW_URL: &str = "https://chatgpt.com";
 static NEXT_POPUP_ID: AtomicU64 = AtomicU64::new(1);
@@ -123,6 +125,7 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let app_handle = app.handle().clone();
             WebviewWindowBuilder::new(
@@ -131,6 +134,8 @@ pub fn run() {
                 WebviewUrl::External(MAIN_WINDOW_URL.parse().expect("invalid main window URL")),
             )
             .title("GPTWrap")
+            .decorations(false)
+            .initialization_script(injected_titlebar::script())
             .inner_size(1280.0, 900.0)
             .min_inner_size(800.0, 600.0)
             .on_download(handle_download)

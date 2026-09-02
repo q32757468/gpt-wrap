@@ -4,7 +4,7 @@ use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     webview::{DownloadEvent, NewWindowResponse, Webview, WebviewWindowBuilder},
-    Emitter, Manager, WebviewUrl, WindowEvent,
+    Emitter, LogicalSize, Manager, WebviewUrl, WindowEvent,
 };
 use tauri_plugin_notification::NotificationExt;
 
@@ -17,8 +17,9 @@ const MAIN_WINDOW_LABEL: &str = "main";
 const MAIN_WINDOW_URL: &str = "https://chatgpt.com";
 const ABOUT_WINDOW_LABEL: &str = "about";
 const ABOUT_WINDOW_WIDTH: f64 = 400.0;
-const ABOUT_WINDOW_HEIGHT: f64 = 420.0;
-const ABOUT_CHECK_EVENT: &str = "gptwrap://about-check-update";
+const ABOUT_WINDOW_HEIGHT: f64 = 300.0;
+const UPDATE_WINDOW_HEIGHT: f64 = 420.0;
+const ABOUT_MODE_EVENT: &str = "gptwrap://about-mode";
 static NEXT_POPUP_ID: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Default)]
@@ -31,11 +32,17 @@ async fn open_about_window<R: tauri::Runtime>(
     auto_check: Option<bool>,
 ) -> Result<(), String> {
     let should_check = auto_check.unwrap_or(false);
-    if should_check {
-        pending_check.0.store(true, Ordering::Release);
-    }
+    let window_height = if should_check {
+        UPDATE_WINDOW_HEIGHT
+    } else {
+        ABOUT_WINDOW_HEIGHT
+    };
+    pending_check.0.store(should_check, Ordering::Release);
 
     if let Some(window) = app.get_webview_window(ABOUT_WINDOW_LABEL) {
+        window
+            .set_size(LogicalSize::new(ABOUT_WINDOW_WIDTH, window_height))
+            .map_err(|error| format!("failed to resize the about window: {error}"))?;
         window
             .unminimize()
             .map_err(|error| format!("failed to restore the about window: {error}"))?;
@@ -45,11 +52,9 @@ async fn open_about_window<R: tauri::Runtime>(
         window
             .set_focus()
             .map_err(|error| format!("failed to focus the about window: {error}"))?;
-        if should_check {
-            window
-                .emit(ABOUT_CHECK_EVENT, ())
-                .map_err(|error| format!("failed to trigger update check: {error}"))?;
-        }
+        window
+            .emit(ABOUT_MODE_EVENT, should_check)
+            .map_err(|error| format!("failed to update the about window mode: {error}"))?;
         return Ok(());
     }
 
@@ -59,11 +64,9 @@ async fn open_about_window<R: tauri::Runtime>(
         WebviewUrl::App("about.html".into()),
     )
     .title("关于 GPTWrap")
-    // Keep the native window large enough for update status and progress.
-    .inner_size(ABOUT_WINDOW_WIDTH, ABOUT_WINDOW_HEIGHT)
-    .min_inner_size(ABOUT_WINDOW_WIDTH, ABOUT_WINDOW_HEIGHT)
-    .max_inner_size(ABOUT_WINDOW_WIDTH, ABOUT_WINDOW_HEIGHT)
-    .resizable(false)
+    // Use an entry-specific default size while allowing the user to resize it.
+    .inner_size(ABOUT_WINDOW_WIDTH, window_height)
+    .resizable(true)
     .center()
     .initialization_script(about_window::script());
 

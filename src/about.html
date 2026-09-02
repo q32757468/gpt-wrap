@@ -22,7 +22,7 @@
       </a>
       <p class="about-version">版本 <span class="about-version-number"></span></p>
 
-      <section class="about-update" aria-labelledby="about-update-title">
+      <section class="about-update" aria-labelledby="about-update-title" hidden>
         <h2 class="about-update-title" id="about-update-title">应用更新</h2>
         <p class="about-update-status" role="status" aria-live="polite">尚未检查更新</p>
         <p class="about-update-detail" hidden></p>
@@ -37,11 +37,7 @@
         <a class="about-update-release" target="_blank" rel="noopener noreferrer" hidden>
           查看发布说明
         </a>
-        <details class="about-update-diagnostics" hidden>
-          <summary>技术详情</summary>
-          <pre class="about-update-error"></pre>
-          <button class="about-update-copy" type="button">复制错误详情</button>
-        </details>
+        <pre class="about-update-error" role="alert" aria-live="assertive" hidden></pre>
       </section>
     </main>
     <script src="./about.js"></script>

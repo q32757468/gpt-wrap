@@ -34,7 +34,7 @@
   })();
 
   const UPDATE_EVENTS = {
-    aboutCheck: "gptwrap://about-check-update",
+    aboutMode: "gptwrap://about-mode",
     downloadStarted: "gptwrap://update-download-started",
     downloadProgress: "gptwrap://update-download-progress",
     downloadFinished: "gptwrap://update-download-finished",
@@ -42,6 +42,7 @@
   };
 
   const elements = {
+    update: document.querySelector(".about-update"),
     status: document.querySelector(".about-update-status"),
     detail: document.querySelector(".about-update-detail"),
     progress: document.querySelector(".about-update-progress"),
@@ -50,16 +51,13 @@
     check: document.querySelector(".about-update-check"),
     install: document.querySelector(".about-update-install"),
     release: document.querySelector(".about-update-release"),
-    diagnostics: document.querySelector(".about-update-diagnostics"),
     error: document.querySelector(".about-update-error"),
-    copy: document.querySelector(".about-update-copy"),
   };
 
   let pendingUpdate = null;
   let operation = null;
   let contentLength = null;
   let downloaded = 0;
-  let lastError = "";
 
   const normalizeError = (error) => {
     if (typeof error === "string" && error.trim()) {
@@ -142,19 +140,21 @@
   };
 
   const clearDiagnostics = () => {
-    lastError = "";
-    setHidden(elements.diagnostics, true);
+    setHidden(elements.error, true);
     if (elements.error) {
       elements.error.textContent = "";
     }
   };
 
   const showDiagnostics = (error) => {
-    lastError = normalizeError(error);
-    setHidden(elements.diagnostics, false);
+    setHidden(elements.error, false);
     if (elements.error) {
-      elements.error.textContent = lastError;
+      elements.error.textContent = normalizeError(error);
     }
+  };
+
+  const setUpdateVisible = (visible) => {
+    setHidden(elements.update, !visible);
   };
 
   const releaseUrl = (version) => {
@@ -174,6 +174,7 @@
   };
 
   const showInitialState = () => {
+    setUpdateVisible(false);
     pendingUpdate = null;
     clearDiagnostics();
     resetProgress();
@@ -369,48 +370,22 @@
     }
   };
 
-  const copyErrorDetails = async () => {
-    if (!lastError) {
-      return;
-    }
-
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(lastError);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = lastError;
-        textarea.setAttribute("readonly", "");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        textarea.remove();
-      }
-      if (elements.copy) {
-        elements.copy.textContent = "已复制";
-        window.setTimeout(() => {
-          elements.copy.textContent = "复制错误详情";
-        }, 1600);
-      }
-    } catch (error) {
-      log("could not copy updater diagnostics", error);
-    }
-  };
-
   const listenForUpdaterEvents = async () => {
     if (!tauriEvent) {
       return;
     }
 
     const handlers = [
-      [UPDATE_EVENTS.aboutCheck, () => {
-        startCheck();
-        if (tauriCore) {
-          Promise.resolve(tauriCore.invoke("consume_about_check")).catch((error) =>
-            log("could not consume the update-check request", error),
-          );
+      [UPDATE_EVENTS.aboutMode, (event) => {
+        const showUpdates = event?.payload === true;
+        setUpdateVisible(showUpdates);
+        if (showUpdates) {
+          startCheck();
+          if (tauriCore) {
+            Promise.resolve(tauriCore.invoke("consume_about_check")).catch((error) =>
+              log("could not consume the update-check request", error),
+            );
+          }
         }
       }],
       [UPDATE_EVENTS.downloadStarted, (event) => handleDownloadStarted(event?.payload)],
@@ -455,10 +430,6 @@
     startInstall();
   });
 
-  elements.copy?.addEventListener("click", () => {
-    copyErrorDetails();
-  });
-
   showInitialState();
 
   // Register listeners before consuming the pending request. The Rust side
@@ -474,6 +445,7 @@
       return tauriCore.invoke("consume_about_check");
     })
     .then((shouldCheck) => {
+      setUpdateVisible(Boolean(shouldCheck));
       if (shouldCheck) {
         startCheck();
       }

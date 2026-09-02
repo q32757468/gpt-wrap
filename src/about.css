@@ -183,9 +183,10 @@ body {
   margin-top: 7px;
 }
 
+.about-update[hidden],
 .about-update-progress[hidden],
 .about-update-release[hidden],
-.about-update-diagnostics[hidden] {
+.about-update-error[hidden] {
   display: none;
 }
 
@@ -212,8 +213,7 @@ body {
   margin-top: 9px;
 }
 
-.about-update-actions button,
-.about-update-copy {
+.about-update-actions button {
   min-height: 28px;
   padding: 4px 11px;
   color: #ffffff;
@@ -227,21 +227,17 @@ body {
   transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
 }
 
-.about-update-actions button:hover:not(:disabled),
-.about-update-copy:hover:not(:disabled) {
+.about-update-actions button:hover:not(:disabled) {
   background: #0d8c6d;
   border-color: #0b795d;
 }
 
-.about-update-actions button:focus-visible,
-.about-update-copy:focus-visible,
-.about-update-diagnostics summary:focus-visible {
+.about-update-actions button:focus-visible {
   outline: 2px solid #10a37f;
   outline-offset: 2px;
 }
 
-.about-update-actions button:disabled,
-.about-update-copy:disabled {
+.about-update-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -283,18 +279,6 @@ body {
   text-decoration: underline;
 }
 
-.about-update-diagnostics {
-  flex: 0 1 auto;
-  min-height: 0;
-  margin-top: 7px;
-  color: #697586;
-  font-size: 11px;
-}
-
-.about-update-diagnostics summary {
-  cursor: pointer;
-}
-
 .about-update-error {
   max-height: 54px;
   margin: 5px 0 6px;
@@ -308,21 +292,6 @@ body {
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-.about-update-copy {
-  min-height: 24px;
-  padding: 3px 8px;
-  color: #4b5563;
-  background: transparent;
-  border-color: #cbd5e1;
-  font-size: 11px;
-}
-
-.about-update-copy:hover:not(:disabled) {
-  color: #1f2937;
-  background: #eef2f7;
-  border-color: #94a3b8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -373,12 +342,6 @@ body {
     color: #8fc5f5;
   }
 
-  .about-update-copy {
-    color: #d4d4d4;
-    background: transparent;
-    border-color: #62666d;
-  }
-
   .about-update-actions .about-update-check {
     color: #8fc5f5;
     background: transparent;
@@ -387,12 +350,6 @@ body {
 
   .about-update-actions .about-update-check:hover:not(:disabled) {
     color: #b6dbff;
-    background: #34383e;
-    border-color: #89919c;
-  }
-
-  .about-update-copy:hover:not(:disabled) {
-    color: #ffffff;
     background: #34383e;
     border-color: #89919c;
   }
@@ -430,8 +387,7 @@ body {
     outline-color: Highlight;
   }
 
-  .about-update-actions button,
-  .about-update-copy {
+  .about-update-actions button {
     color: ButtonText;
     background: ButtonFace;
     border-color: ButtonText;
@@ -443,8 +399,7 @@ body {
     transition: none;
   }
 
-  .about-update-actions button,
-  .about-update-copy {
+  .about-update-actions button {
     transition: none;
   }
 }

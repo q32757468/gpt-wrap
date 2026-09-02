@@ -157,18 +157,18 @@
 
   const icon = (name) => {
     if (name === "minimize") {
-      return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 10.5h8"></path></svg>`;
+      return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 7h8"></path></svg>`;
     }
 
     if (name === "restore") {
-      return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M5 4h6v7H5z"></path><path d="M3 9V2.5h6"></path></svg>`;
+      return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><rect x="2" y="4.5" width="7.5" height="7.5" rx="1"></rect><path d="M4.5 4.5V2.5h7v7h-2"></path></svg>`;
     }
 
     if (name === "maximize") {
-      return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><rect x="2.75" y="2.75" width="8.5" height="8.5" rx="0.5"></rect></svg>`;
+      return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><rect x="2.75" y="2.75" width="8.5" height="8.5" rx="0.8"></rect></svg>`;
     }
 
-    return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="m3.25 3.25 7.5 7.5m0-7.5-7.5 7.5"></path></svg>`;
+    return `<svg viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="m3 3 8 8m0-8-8 8"></path></svg>`;
   };
 
   const setMaximizeIcon = (button, maximized) => {

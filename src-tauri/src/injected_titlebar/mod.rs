@@ -45,6 +45,8 @@ mod tests {
         assert!(script.contains("autoCheck: false"));
         assert!(script.contains("autoCheck: true"));
         assert!(script.contains("autoCheck"));
+        assert!(script.contains("start_drag"));
+        assert!(script.contains("isMaximized"));
         assert!(!script.contains("--gptwrap-titlebar-content-height"));
         assert!(!script.contains("body main > :first-child"));
         assert!(!script.contains("scrollbar-width: none"));

@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-start-drag"
+description = "Allows starting window drag with automatic unmaximize."
+commands.allow = ["start_drag"]

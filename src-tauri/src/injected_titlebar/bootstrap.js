@@ -330,35 +330,24 @@
       }
     };
 
-    const runWindowOperation = (name, operation) => {
-      if (!tauriWindow) {
+    const runOperation = (target, name, operation) => {
+      if (!target) {
         return;
       }
 
-      Promise.resolve()
-        .then(operation)
-        .catch((error) => logOperationError(name, error));
-    };
-
-    const runProcessOperation = (name, operation) => {
-      if (!tauriProcess) {
-        return;
+      try {
+        Promise.resolve(operation()).catch((error) => logOperationError(name, error));
+      } catch (error) {
+        logOperationError(name, error);
       }
-
-      Promise.resolve()
-        .then(operation)
-        .catch((error) => logOperationError(name, error));
     };
 
-    const runCoreOperation = (name, operation) => {
-      if (!tauriCore) {
-        return;
-      }
-
-      Promise.resolve()
-        .then(operation)
-        .catch((error) => logOperationError(name, error));
-    };
+    const runWindowOperation = (name, operation) =>
+      runOperation(tauriWindow, name, operation);
+    const runProcessOperation = (name, operation) =>
+      runOperation(tauriProcess, name, operation);
+    const runCoreOperation = (name, operation) =>
+      runOperation(tauriCore, name, operation);
 
     const updateMaximizeState = () => {
       if (!tauriWindow || !buttons.maximize) {
@@ -519,6 +508,37 @@
       }
     };
 
+    let isDragging = false;
+
+    const startDrag = () => {
+      if (isDragging) {
+        return;
+      }
+
+      clearPendingDrag();
+      dragStartPoint = null;
+      isDragging = true;
+
+      const finishDrag = () => {
+        isDragging = false;
+      };
+
+      try {
+        if (tauriCore) {
+          runCoreOperation("starting window drag", () =>
+            tauriCore.invoke("start_drag").finally(finishDrag),
+          );
+        } else {
+          runWindowOperation("starting window drag", () =>
+            tauriWindow?.startDragging().finally(finishDrag),
+          );
+        }
+      } catch (error) {
+        finishDrag();
+        throw error;
+      }
+    };
+
     // Delay starting a drag just long enough to let a second click arrive.
     // Calling startDragging() during the first mousedown lets the native
     // window manager consume the second click, which prevents dblclick from
@@ -528,7 +548,7 @@
       pendingDragTimer = window.setTimeout(() => {
         pendingDragTimer = null;
         dragStartPoint = null;
-        runWindowOperation("starting window drag", () => tauriWindow?.startDragging());
+        startDrag();
       }, DRAG_START_DELAY_MS);
     };
 
@@ -544,6 +564,7 @@
       if (event.detail >= 2) {
         clearPendingDrag();
         dragStartPoint = null;
+        isDragging = false;
         dragDoubleClickHandled = true;
         toggleMaximize();
         window.setTimeout(() => {
@@ -567,16 +588,15 @@
         return;
       }
 
-      clearPendingDrag();
-      dragStartPoint = null;
       stopEvent(event);
-      runWindowOperation("starting window drag", () => tauriWindow?.startDragging());
+      startDrag();
     });
 
     dragRegion.addEventListener("mouseup", (event) => {
       if (event.button === 0) {
         clearPendingDrag();
         dragStartPoint = null;
+        isDragging = false;
       }
     });
 
@@ -631,6 +651,34 @@
       runWindowOperation("hiding window", () => tauriWindow?.hide());
     });
 
+    let unlistenResize = null;
+
+    const listenForWindowChanges = () => {
+      if (unlistenResize) {
+        return;
+      }
+
+      if (tauriWindow && typeof tauriWindow.onResized === "function") {
+        tauriWindow
+          .onResized(() => updateMaximizeState())
+          .then((unlisten) => {
+            unlistenResize = unlisten;
+          })
+          .catch((error) => logOperationError("listening for window resize", error));
+      } else if (tauriWindow && typeof tauriWindow.listen === "function") {
+        tauriWindow
+          .listen("tauri://resize", () => updateMaximizeState())
+          .then((unlisten) => {
+            unlistenResize = unlisten;
+          })
+          .catch((error) => logOperationError("listening for window resize", error));
+      } else {
+        const handler = () => updateMaximizeState();
+        window.addEventListener("resize", handler);
+        unlistenResize = () => window.removeEventListener("resize", handler);
+      }
+    };
+
     if (!tauriWindow) {
       disableButtons();
       if (!state.apiUnavailableLogged) {
@@ -639,6 +687,7 @@
       }
     } else {
       updateMaximizeState();
+      listenForWindowChanges();
     }
 
     if (!tauriProcess && exitMenuItem) {
@@ -660,8 +709,17 @@
       state.restored = true;
       document.removeEventListener("mousedown", closeMenusFromOutside);
       document.removeEventListener("click", closeMenusFromOutside);
+      if (typeof unlistenResize === "function") {
+        try {
+          unlistenResize();
+        } catch (_) {
+          // Ignore cleanup errors.
+        }
+        unlistenResize = null;
+      }
       clearPendingDrag();
       dragStartPoint = null;
+      isDragging = false;
       try {
         install(state);
       } catch (error) {

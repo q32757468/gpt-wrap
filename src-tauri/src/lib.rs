@@ -93,6 +93,21 @@ fn consume_about_check(pending_check: tauri::State<'_, PendingAboutCheck>) -> bo
     pending_check.0.swap(false, Ordering::AcqRel)
 }
 
+#[tauri::command]
+fn start_drag<R: tauri::Runtime>(window: tauri::WebviewWindow<R>) -> Result<(), String> {
+    if window
+        .is_maximized()
+        .map_err(|error| format!("failed to check maximize state: {error}"))?
+    {
+        window
+            .unmaximize()
+            .map_err(|error| format!("failed to unmaximize window: {error}"))?;
+    }
+    window
+        .start_dragging()
+        .map_err(|error| format!("failed to start dragging: {error}"))
+}
+
 fn handle_download<R: tauri::Runtime>(webview: Webview<R>, event: DownloadEvent<'_>) -> bool {
     match event {
         DownloadEvent::Requested {
@@ -208,6 +223,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             open_about_window,
             consume_about_check,
+            start_drag,
             #[cfg(desktop)]
             updates::check_for_update,
             #[cfg(desktop)]

@@ -1,32 +1,53 @@
 # GPTWrap
 
-A minimal Tauri desktop wrapper that loads [ChatGPT](https://chatgpt.com) in its main window.
+基于 [Tauri 2](https://v2.tauri.app/) 构建的轻量级 [ChatGPT](https://chatgpt.com) 桌面客户端。
 
-## Development
+> [!IMPORTANT]
+> **免责声明**：本项目为第三方开源项目，**非 ChatGPT 或 OpenAI 官方客户端**，与 OpenAI 无任何关联或从属关系。ChatGPT 及其相关商标、版权均归 OpenAI 所有。
+
+## 特性与功能
+
+- 🎨 **沉浸式自定义标题栏**：
+  - 深度融入网页界面的自定义无边框标题栏，支持窗口拖动及双击最大化/还原。
+  - 内置实用菜单栏（文件、帮助，支持快速打开关于及检查更新）与标准窗口控制按钮。
+  - 智能安全区域（Safe Area）补偿，确保不遮挡 ChatGPT 网页原生的顶栏元素与操作。
+- 📌 **系统托盘支持**：
+  - 关闭窗口时自动隐藏至托盘后台常驻，防止误触导致对话中断。
+  - 支持托盘右键菜单（显示窗口、退出应用），左键单击托盘图标即可快速唤起并置顶主窗口。
+- 🛡️ **单实例运行保护**：
+  - 限制单一实例运行，重复打开应用时自动唤起已有窗口，防止多开占用系统资源。
+- 📥 **原生下载与通知**：
+  - 拦截网页内文件下载事件，调起系统原生保存文件对话框，自由选择保存位置与文件名。
+  - 下载完成或失败后推送系统原生桌面通知，便于快速确认和查找保存的文件。
+- ℹ️ **关于与应用内更新**：
+  - 独立精致的“关于”窗口，清晰展示版本信息与项目主页。
+  - 支持在应用内直接检查最新发布版本并完成升级。
+- ⚡ **轻量低占用**：
+  - 借助 Tauri 2 和系统原生 Webview 渲染，启动迅速，内存与 CPU 资源占用远低于传统 Electron 封装客户端。
+
+## 本地开发与构建
+
+### 前置环境
+
+- Node.js (推荐使用 pnpm 或 npm)
+- [Rust 及 Tauri 前置开发环境](https://v2.tauri.app/start/prerequisites/)
+
+### 启动开发
 
 ```bash
-npm install
+# 安装依赖
+npm install # 或 pnpm install
+
+# 启动开发模式
 npm run tauri dev
 ```
 
-The remote URL is configured in `src-tauri/tauri.conf.json`.
+### 打包应用
 
-## Release and in-app updates
+```bash
+npm run tauri build
+```
 
-Windows releases use the signed NSIS installer. The first version that
-contains the updater still has to be installed manually; later releases can
-be checked and installed from the About window.
+## 许可证
 
-The release workflow requires these GitHub Actions secrets:
-
-- `TAURI_SIGNING_PRIVATE_KEY`: the complete Tauri updater private key
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: the key password, if one is set
-
-Keep the private key out of the repository. The public key is stored in
-`src-tauri/tauri.conf.json` and the update metadata is published to the
-project's GitHub Releases.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
+本项目基于 [MIT License](LICENSE) 开源。

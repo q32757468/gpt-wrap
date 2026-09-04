@@ -4,6 +4,7 @@ version = "0.1.8"
 description = "A Tauri desktop wrapper for ChatGPT named GPTWrap"
 authors = ["you"]
 edition = "2021"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

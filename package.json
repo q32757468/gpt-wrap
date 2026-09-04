@@ -2,6 +2,7 @@
   "name": "gpt-wrap",
   "private": true,
   "version": "0.1.8",
+  "license": "MIT",
   "packageManager": "pnpm@11.25.0",
   "type": "module",
   "scripts": {

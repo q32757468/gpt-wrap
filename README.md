@@ -25,3 +25,8 @@ The release workflow requires these GitHub Actions secrets:
 Keep the private key out of the repository. The public key is stored in
 `src-tauri/tauri.conf.json` and the update metadata is published to the
 project's GitHub Releases.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
